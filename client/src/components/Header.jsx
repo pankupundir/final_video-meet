@@ -1,11 +1,12 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 import { AiOutlineLogout as LogOutIcon } from "react-icons/ai";
 
 const Header = () => {
-  const { user, login, logout } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   return (
     <div className="h-16 px-3 bg-darkBlue1 text-slate-300 w-full flex items-center border-b-2 border-lightGray">
       <div className="flex-grow font-semibold">
@@ -30,7 +31,7 @@ const Header = () => {
         ) : (
           <button
             className="bg-yellow py-1 px-5 text-white  font-semibold text-xs cursor-pointer rounded border-2 border-transparent hover:border-yellow hover:bg-transparent hover:text-yellow duration-200"
-            onClick={login}
+            onClick={() => navigate("/login", { state: { from: "/" } })}
           >
             Login
           </button>

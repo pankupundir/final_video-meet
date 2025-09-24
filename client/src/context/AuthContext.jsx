@@ -1,61 +1,41 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth, firestore } from "../firebase/config";
-import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
 
 const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const getUser = async () => {
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          setUser(user);
-          setLoading(false);
-        }
-        if (!user) {
-          setUser(null);
-          setLoading(false);
-        }
-      });
-    };
-    return getUser();
+    const saved = localStorage.getItem("sonic_meet_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setUser(parsed);
+      } catch (_) {
+        setUser(null);
+      }
+    }
+    setLoading(false);
   }, []);
 
-  const login = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const { user } = await signInWithPopup(auth, provider);
-      await setDoc(
-        doc(firestore, "user", `${user?.uid}`),
-        {
-          name: user?.displayName,
-          email: user?.email,
-          photo: user?.photoURL,
-          lastLogin: serverTimestamp(),
-        },
-        { merge: true }
-      );
-      setUser(user);
-      return user;
-    } catch (error) {
-      console.log(error);
-      setUser(null);
-      return error;
-    }
+  const login = async (nameArg, emailArg) => {
+    const providedName = typeof nameArg === "string" ? nameArg : "";
+    const name = providedName.trim();
+    if (!name) return null;
+    const email = typeof emailArg === "string" && emailArg.trim() ? emailArg.trim() : null;
+    const localUser = {
+      uid: `local_${Math.random().toString(36).slice(2)}${Date.now()}`,
+      displayName: name,
+      email,
+      photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff`,
+    };
+    setUser(localUser);
+    localStorage.setItem("sonic_meet_user", JSON.stringify(localUser));
+    return localUser;
   };
 
   const logout = async () => {
     console.log("Logout");
-    signOut(auth);
+    localStorage.removeItem("sonic_meet_user");
     setUser(null);
     return user;
   };

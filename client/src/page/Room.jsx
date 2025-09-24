@@ -8,7 +8,7 @@ import { IoChatboxOutline as ChatIcon } from "react-icons/io5";
 import { VscTriangleDown as DownIcon } from "react-icons/vsc";
 import { FaUsers as UsersIcon } from "react-icons/fa";
 import { FiSend as SendIcon } from "react-icons/fi";
-import { FcGoogle as GoogleIcon } from "react-icons/fc";
+import { AiOutlineUser as UserIcon } from "react-icons/ai";
 import { MdCallEnd as CallEndIcon } from "react-icons/md";
 import { MdClear as ClearIcon } from "react-icons/md";
 import { AiOutlineLink as LinkIcon } from "react-icons/ai";
@@ -38,6 +38,7 @@ import Peer from "simple-peer";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import Loading from "../components/Loading";
+import Login from "../components/Login";
 
 const Room = () => {
   const [loading, setLoading] = useState(true);
@@ -61,9 +62,20 @@ const Room = () => {
   const localVideo = useRef();
 
   // user
-  const { user, login } = useAuth();
+  const { user } = useAuth();
 
   const [particpentsOpen, setParticpentsOpen] = useState(true);
+
+  // Attach local stream to video element once both are ready
+  useEffect(() => {
+    if (localVideo.current && localStream) {
+      try {
+        localVideo.current.srcObject = localStream;
+      } catch (_) {
+        // no-op
+      }
+    }
+  }, [localStream]);
 
   const sendMessage = (e) => {
     e.preventDefault();
@@ -85,8 +97,8 @@ const Room = () => {
   useEffect(() => {
     const unsub = () => {
       socket.current = io.connect(
-        "https://sonic-meet-backend.herokuapp.com/"
-        // process.env.SOCKET_BACKEND_URL || "http://localhost:5000"
+        // "https://sonic-meet-backend.herokuapp.com/"
+        "https://final-video-meet.vercel.app"
       );
       socket.current.on("message", (data) => {
         const audio = new Audio(msgSFX);
@@ -111,7 +123,7 @@ const Room = () => {
           .then((stream) => {
             setLoading(false);
             setLocalStream(stream);
-            localVideo.current.srcObject = stream;
+            console.log(localVideo, "llo");
             socket.current.emit("join room", {
               roomID,
               user: user
@@ -339,14 +351,15 @@ const Room = () => {
                                 : "bg-slate-800/70 backdrop-blur border-gray"
                             } border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                             onClick={() => {
-                              const audio =
-                                localVideo.current.srcObject.getAudioTracks()[0];
+                              const audio = localVideo.current && localVideo.current.srcObject
+                                ? localVideo.current.srcObject.getAudioTracks()[0]
+                                : null;
                               if (micOn) {
-                                audio.enabled = false;
+                                if (audio) audio.enabled = false;
                                 setMicOn(false);
                               }
                               if (!micOn) {
-                                audio.enabled = true;
+                                if (audio) audio.enabled = true;
                                 setMicOn(true);
                               }
                             }}
@@ -363,12 +376,12 @@ const Room = () => {
                             } border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
                             onClick={() => {
                               const videoTrack = localStream
-                                .getTracks()
-                                .find((track) => track.kind === "video");
+                                ? localStream.getTracks().find((track) => track.kind === "video")
+                                : null;
                               if (videoActive) {
-                                videoTrack.enabled = false;
+                                if (videoTrack) videoTrack.enabled = false;
                               } else {
-                                videoTrack.enabled = true;
+                                if (videoTrack) videoTrack.enabled = true;
                               }
                               setVideoActive(!videoActive);
                             }}
@@ -643,15 +656,7 @@ const Room = () => {
         </AnimatePresence>
       ) : (
         <div className="h-full bg-darkBlue2 flex items-center justify-center">
-          <button
-            className="flex items-center gap-2 p-1 pr-3 rounded text-white font-bold bg-blue transition-all"
-            onClick={login}
-          >
-            <div className="p-2 bg-white rounded">
-              <GoogleIcon size={24} />
-            </div>
-            Login with Google
-          </button>
+         <Login />
         </div>
       )}
     </>
