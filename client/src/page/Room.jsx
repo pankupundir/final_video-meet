@@ -98,7 +98,7 @@ const Room = () => {
     const unsub = () => {
       socket.current = io.connect(
         // "https://sonic-meet-backend.herokuapp.com/"
-        "https://final-video-meet.vercel.app"
+        "https://sonic-meet.onrender.com"
       );
       socket.current.on("message", (data) => {
         const audio = new Audio(msgSFX);
