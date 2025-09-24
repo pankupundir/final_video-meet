@@ -25,7 +25,7 @@ const Login = () => {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-darkBlue2 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-darkBlue1 border-2 border-lightGray rounded-lg p-6 text-white">
-        <h1 className="text-xl font-semibold mb-1">Join Sonic Meet</h1>
+        <h1 className="text-xl font-semibold mb-1">Join Kretsia Meet</h1>
         <p className="text-slate-400 text-sm mb-6">Enter your name to continue. Email is optional.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

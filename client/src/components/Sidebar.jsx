@@ -1,5 +1,6 @@
 import React from "react";
 import { sideMenuData } from "../constants/SideMenuData";
+import imge from "../images/logo.png"
 
 import { Link, NavLink } from "react-router-dom";
 
@@ -11,7 +12,7 @@ const Sidebar = () => {
     <div className="bg-darkBlue1 flex flex-col items-center justify-between p-2 w-[70px] h-screen border-r-2 border-lightGray">
       <div className="my-3">
         <Link to="/">
-          <img className="h-9 w-9" src="/images/logo.png" alt="logo" />
+          <img className="h-9 w-9" src={imge} alt="logo" />
         </Link>
       </div>
       <div className="flex-grow my-2">
