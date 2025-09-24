@@ -13,7 +13,7 @@ import { MdCallEnd as CallEndIcon } from "react-icons/md";
 import { MdClear as ClearIcon } from "react-icons/md";
 import { AiOutlineLink as LinkIcon } from "react-icons/ai";
 import { MdOutlineContentCopy as CopyToClipboardIcon } from "react-icons/md";
-// import { MdScreenShare as ScreenShareIcon } from "react-icons/md";
+import { MdScreenShare as ScreenShareIcon } from "react-icons/md";
 import { IoVideocamSharp as VideoOnIcon } from "react-icons/io5";
 import { IoVideocamOff as VideoOffIcon } from "react-icons/io5";
 import { AiOutlineShareAlt as ShareIcon } from "react-icons/ai";
@@ -56,6 +56,8 @@ const Room = () => {
   const peersRef = useRef([]);
 
   const [videoActive, setVideoActive] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const screenStreamRef = useRef(null);
 
   const [msgs, setMsgs] = useState([]);
   const [msgText, setMsgText] = useState("");
@@ -98,7 +100,8 @@ const Room = () => {
     const unsub = () => {
       socket.current = io.connect(
         // "https://sonic-meet-backend.herokuapp.com/"
-        "https://sonic-meet.onrender.com"
+        // "https://sonic-meet.onrender.com"
+        "http://localhost:5000"
       );
       socket.current.on("message", (data) => {
         const audio = new Audio(msgSFX);
@@ -192,6 +195,8 @@ const Room = () => {
     return unsub();
   }, [user, roomID]);
 
+  
+
   const createPeer = (userToSignal, callerID, stream) => {
     const peer = new Peer({
       initiator: true,
@@ -230,6 +235,76 @@ const Room = () => {
     joinSound.play();
     peer.signal(incomingSignal);
     return peer;
+  };
+
+  // Screen sharing start/stop
+  const startScreenShare = async () => {
+    if (!localStream || isScreenSharing) return;
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const screenTrack = displayStream.getVideoTracks()[0];
+      const camTrack = localStream.getVideoTracks()[0] || null;
+      if (!screenTrack || !camTrack) return;
+
+      // Replace camera -> screen for all peers
+      peersRef.current.forEach(({ peer }) => {
+        try {
+          peer.replaceTrack(camTrack, screenTrack, localStream);
+        } catch (_) {}
+      });
+
+      // Show screen locally
+      if (localVideo.current) {
+        localVideo.current.srcObject = displayStream;
+      }
+
+      screenStreamRef.current = displayStream;
+      setIsScreenSharing(true);
+
+      const endHandler = () => { stopScreenShare(); };
+      screenTrack.onended = endHandler;
+      displayStream.oninactive = endHandler;
+    } catch (_) {
+      setIsScreenSharing(false);
+    }
+  };
+
+  const stopScreenShare = () => {
+    if (!isScreenSharing) return;
+    try {
+      const displayStream = screenStreamRef.current;
+      const screenTrack = displayStream && displayStream.getVideoTracks()[0];
+      const camTrack = localStream && localStream.getVideoTracks().find((t) => t.kind === "video");
+
+      if (screenTrack && camTrack) {
+        // Replace screen -> camera for all peers
+        peersRef.current.forEach(({ peer }) => {
+          try {
+            peer.replaceTrack(screenTrack, camTrack, displayStream);
+          } catch (_) {}
+        });
+      }
+
+      // Stop display stream tracks
+      if (displayStream) {
+        displayStream.getTracks().forEach((t) => t.stop());
+      }
+
+      // Restore local preview to camera (force reset)
+      if (localVideo.current) {
+        localVideo.current.srcObject = null;
+        setTimeout(() => {
+          try { localVideo.current && (localVideo.current.srcObject = localStream); } catch (_) {}
+        }, 0);
+      }
+    } catch (_) {}
+    setIsScreenSharing(false);
+    screenStreamRef.current = null;
+  };
+
+  const toggleScreenShare = () => {
+    if (isScreenSharing) return stopScreenShare();
+    return startScreenShare();
   };
 
   return (
@@ -413,14 +488,15 @@ const Room = () => {
                         </button>
                       </div>
                       <div className="flex gap-2">
-                        {/* <div>
+                        <div>
                           <button
-                            className={`bg-slate-800/70 backdrop-blur border-gray
-          border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
+                            className={`${isScreenSharing ? "bg-blue border-transparent" : "bg-slate-800/70 backdrop-blur border-gray"} border-2  p-2 cursor-pointer rounded-xl text-white text-xl`}
+                            onClick={toggleScreenShare}
+                            title={isScreenSharing ? "Stop sharing" : "Share screen"}
                           >
                             <ScreenShareIcon size={22} />
                           </button>
-                        </div> */}
+                        </div>
                         <div>
                           <button
                             className={`bg-slate-800/70 backdrop-blur border-gray
